@@ -3,11 +3,11 @@
 // Compatible with Laragon MySQL setup
 
 class Database {
-    private $host = 'localhost';
-    private $port = '3306';
-    private $database = 'smarthrm_db';
+    private $host = 'maglev.proxy.rlwy.net';
+    private $port = '13358';
+    private $database = 'railway';
     private $username = 'root';
-    private $password = '';
+    private $password = 'lJemNJJMLbMGRUYZLvPLxgyzsxChdGHG';
     private $pdo = null;
 
     public function __construct() {
