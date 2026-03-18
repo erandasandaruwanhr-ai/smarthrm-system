@@ -1,0 +1,80 @@
+================================================================================
+                       SMARTHRM INSTALLATION GUIDE
+================================================================================
+
+QUICK START INSTRUCTIONS:
+
+1. UPLOAD THE INSTALLER
+   - Upload the entire 'installer' folder to your web server
+   - Make sure the parent directory is writable (755 permissions)
+
+2. RUN THE INSTALLER
+   - Open your web browser
+   - Navigate to: http://yourdomain.com/path-to-installer/
+   - Follow the step-by-step installation wizard
+
+3. INSTALLATION STEPS:
+   Step 1: System Requirements Check
+   - The installer will check if your server meets all requirements
+   - Fix any issues shown before proceeding
+
+   Step 2: Database Configuration
+   - Enter your MySQL database details
+   - Test the connection before proceeding
+   - The installer can create the database if it doesn't exist
+
+   Step 3: Admin Account Setup
+   - Set your company name
+   - Create an administrator password
+   - Configure the system URL
+
+   Step 4: Installation Process
+   - The system will automatically:
+     * Create the database
+     * Install all tables
+     * Insert core data
+     * Set up permissions
+     * Generate configuration files
+
+   Step 5: Installation Complete
+   - Review the installation summary
+   - Note your admin login credentials
+   - Click to access your SmartHRM system
+
+4. POST-INSTALLATION:
+   - DELETE the installer folder for security
+   - Login with EPF: ADMIN001 and your chosen password
+   - Change the admin password after first login
+   - Configure additional system settings as needed
+
+================================================================================
+
+SYSTEM REQUIREMENTS:
+- PHP 7.4 or higher (8.0+ recommended)
+- MySQL 5.7 or higher
+- Web server (Apache/Nginx)
+- Minimum 128MB memory limit
+- Write permissions on installation directory
+
+INCLUDED TABLES & DATA:
+- Account types and permissions
+- Employee management structure
+- Location and department data
+- Dropdown options for all modules
+- Role-based permission system
+- Training types and categories
+- Complete system settings
+
+DEFAULT LOGIN:
+Username: ADMIN001
+Password: [As set during installation]
+
+SUPPORT:
+If you encounter issues during installation:
+1. Check the system requirements
+2. Verify database credentials
+3. Ensure proper file permissions
+4. Review server error logs
+5. Contact technical support with specific error messages
+
+================================================================================

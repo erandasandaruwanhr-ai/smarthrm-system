@@ -1,0 +1,166 @@
+/* SmartHRM Notification System Styles */
+
+/* Sidebar Notification Bells */
+.notification-bell {
+    position: relative;
+    display: inline-block;
+    margin-left: auto;
+    margin-right: 10px;
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+}
+
+.notification-bell i {
+    color: #FFA500;
+    filter: drop-shadow(0 0 2px rgba(255, 165, 0, 0.5));
+}
+
+.notification-bell:hover i {
+    color: #FFD700;
+    transform: scale(1.1);
+    filter: drop-shadow(0 0 4px rgba(255, 165, 0, 0.8));
+}
+
+.notification-count {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background: #FF4444; /* Red for notifications */
+    color: white;
+    border-radius: 50%;
+    width: 18px;
+    height: 18px;
+    font-size: 0.7rem;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    animation: pulse-notification 2s infinite;
+}
+
+.notification-count[data-count="0"],
+.notification-count.hidden {
+    display: none; /* Hide when no notifications */
+}
+
+.notification-count:not([data-count="0"]) {
+    display: flex; /* Show red circle for 1+ */
+}
+
+/* Removed .hidden rule - we always show notification counts now */
+
+/* Module Sub-page Notification Bells */
+.notification-bell-module {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 100;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+}
+
+.notification-bell-module i {
+    color: #FFA500;
+    filter: drop-shadow(0 0 3px rgba(255, 165, 0, 0.6));
+}
+
+.notification-bell-module:hover i {
+    color: #FFD700;
+    transform: scale(1.2);
+    filter: drop-shadow(0 0 6px rgba(255, 165, 0, 0.9));
+}
+
+.notification-count-module {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background: #FF4444; /* Red for notifications */
+    color: white;
+    border-radius: 50%;
+    width: 18px;
+    height: 18px;
+    font-size: 0.7rem;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    animation: pulse-notification 2s infinite;
+}
+
+/* Removed .hidden rule - we always show notification counts now */
+
+/* Animation for notification pulse */
+@keyframes pulse-notification {
+    0% {
+        transform: scale(1);
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+    }
+    50% {
+        transform: scale(1.1);
+        box-shadow: 0 4px 12px rgba(255, 68, 68, 0.6);
+    }
+    100% {
+        transform: scale(1);
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+    }
+}
+
+/* Ensure action cards have relative positioning for absolute bells */
+.action-card, .stats-card {
+    position: relative;
+}
+
+/* Special notification state colors */
+.notification-bell-urgent i,
+.notification-bell-module-urgent i {
+    color: #FF6B6B;
+    animation: shake 0.5s infinite;
+}
+
+.notification-bell-new i,
+.notification-bell-module-new i {
+    color: #4ECDC4;
+}
+
+@keyframes shake {
+    0% { transform: translateX(0); }
+    25% { transform: translateX(-2px); }
+    50% { transform: translateX(2px); }
+    75% { transform: translateX(-2px); }
+    100% { transform: translateX(0); }
+}
+
+/* Module notification count visibility rules */
+.notification-count-module[data-count="0"],
+.notification-count-module.hidden {
+    display: none !important; /* Hide when no notifications */
+}
+
+.notification-count-module:not([data-count="0"]):not(.hidden) {
+    display: flex !important; /* Show red circle for 1+ */
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .notification-bell {
+        margin-right: 5px;
+        font-size: 0.8rem;
+    }
+
+    .notification-bell-module {
+        top: 5px;
+        right: 5px;
+        font-size: 0.9rem;
+    }
+
+    .notification-count,
+    .notification-count-module {
+        width: 16px;
+        height: 16px;
+        font-size: 0.65rem;
+    }
+}
