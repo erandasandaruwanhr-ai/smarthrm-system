@@ -7,7 +7,7 @@ date_default_timezone_set('Asia/Colombo');
 // System Settings
 define('APP_NAME', 'SmartHRM System');
 define('APP_VERSION', '1.0.0');
-define('BASE_URL', 'http://localhost/pbpictures/smarthrmjiffy/');
+define('BASE_URL', 'https://smarthrm-system-production.up.railway.app/');
 
 // Default credentials for first login
 define('DEFAULT_PASSWORD', 'smarthrm123@@@');
