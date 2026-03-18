@@ -1,0 +1,553 @@
+<?php
+require_once '../../config/config.php';
+require_once '../../includes/auth_check.php';
+
+// Check if user has permission to access employee module using new role-based system
+requirePermission('employee', 'view');
+
+$user = getCurrentUser();
+
+// Get employee statistics based on user's access level
+$stats = getLocationBasedStats($db, $user);
+$accessible_employees = getAccessibleEmployeesByLocation($db, $user);
+
+// Calculate additional stats
+$recent_hires = 0;
+$today = new DateTime();
+foreach ($accessible_employees as $employee) {
+    if ($employee['joined_date']) {
+        $joined_date = new DateTime($employee['joined_date']);
+        $diff = $today->diff($joined_date);
+        if ($diff->days <= 30) { // Hired in last 30 days
+            $recent_hires++;
+        }
+    }
+}
+?>
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartHRM - Employee Management</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="../../assets/css/notifications.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #007bff;
+            --secondary-color: #6c757d;
+            --success-color: #28a745;
+            --danger-color: #dc3545;
+            --warning-color: #ffc107;
+            --info-color: #17a2b8;
+            --sidebar-width: 280px;
+        }
+
+        body {
+            background-color: #f8f9fa;
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .main-content {
+            margin-left: var(--sidebar-width);
+            min-height: 100vh;
+        }
+
+        .dashboard-content {
+            background: #f8f9fa;
+            padding: 2rem;
+            min-height: calc(100vh - 40px);
+        }
+
+        .page-header {
+            background: linear-gradient(135deg, var(--primary-color), #0056b3);
+            color: white;
+            padding: 2rem;
+            border-radius: 15px;
+            margin-bottom: 2rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .page-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 200px;
+            height: 200px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            transform: translate(50px, -50px);
+        }
+
+        .page-header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            position: relative;
+            z-index: 2;
+        }
+
+        .page-header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            margin: 0;
+            position: relative;
+            z-index: 2;
+        }
+
+        .page-header .d-flex {
+            position: relative;
+            z-index: 2;
+        }
+
+        .header-content {
+            position: relative;
+            z-index: 2;
+        }
+
+        .page-header-logo {
+            height: 60px;
+            width: auto;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 8px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            position: relative;
+            z-index: 2;
+        }
+
+        .stats-card {
+            background: white;
+            border-radius: 15px;
+            padding: 1.5rem;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            border: none;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            height: 100%;
+        }
+
+        .stats-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+        }
+
+        .stats-card .icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1rem;
+            font-size: 1.5rem;
+        }
+
+        .stats-card.primary .icon {
+            background: linear-gradient(135deg, var(--primary-color), #0056b3);
+            color: white;
+        }
+
+        .stats-card.warning .icon {
+            background: linear-gradient(135deg, var(--warning-color), #e0a800);
+            color: white;
+        }
+
+        .stats-card.success .icon {
+            background: linear-gradient(135deg, var(--success-color), #1e7e34);
+            color: white;
+        }
+
+        .stats-card.danger .icon {
+            background: linear-gradient(135deg, var(--danger-color), #c82333);
+            color: white;
+        }
+
+        .stats-card.info .icon {
+            background: linear-gradient(135deg, var(--info-color), #138496);
+            color: white;
+        }
+
+        .stats-card.purple .icon {
+            background: linear-gradient(135deg, #6f42c1, #5a2d91);
+            color: white;
+        }
+
+        .stats-card h3 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            color: #2c3e50;
+        }
+
+        .stats-card p {
+            color: #7f8c8d;
+            margin: 0;
+            font-weight: 500;
+        }
+
+        .action-card {
+            cursor: pointer;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .action-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.2);
+        }
+
+        .action-card h4 {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .action-card p {
+            font-size: 0.9rem;
+            color: #7f8c8d;
+        }
+
+        a:hover .action-card h4,
+        a:hover .action-card p {
+            color: inherit;
+        }
+
+        .activity-card {
+            background: white;
+            border-radius: 15px;
+            padding: 1.5rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            border: none;
+        }
+
+        .data-table-card {
+            background: white;
+            border-radius: 15px;
+            padding: 0;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            border: none;
+            overflow: hidden;
+        }
+
+        .table-header {
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid #dee2e6;
+            margin: 0;
+        }
+
+        .table-header h6 {
+            color: #495057;
+            font-weight: 600;
+            margin: 0;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                margin-left: 0;
+            }
+
+            .dashboard-content {
+                padding: 1rem;
+            }
+
+            .page-header h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar -->
+    <?php include '../../includes/sidebar.php'; ?>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <div class="dashboard-content">
+            <!-- Page Header -->
+            <div class="page-header">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div class="header-content">
+                        <h1><i class="fas fa-users me-3"></i>Employee Management</h1>
+                        <p>Comprehensive employee data management, analytics, and organizational insights</p>
+                    </div>
+                    <div class="logo-container">
+                        <img src="../../jiffy-logo.svg" alt="Jiffy Logo" class="page-header-logo">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Statistics Cards -->
+            <div class="row mb-4">
+                <div class="col-lg-3 col-md-6 mb-4">
+                    <div class="stats-card primary">
+                        <div class="icon">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <h3><?php echo number_format($stats['total_employees']); ?></h3>
+                        <p>Total Employees</p>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6 mb-4">
+                    <div class="stats-card success">
+                        <div class="icon">
+                            <i class="fas fa-user-check"></i>
+                        </div>
+                        <h3><?php echo number_format($stats['active_employees']); ?></h3>
+                        <p>Active Employees</p>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6 mb-4">
+                    <div class="stats-card warning">
+                        <div class="icon">
+                            <i class="fas fa-user-plus"></i>
+                        </div>
+                        <h3><?php echo number_format($recent_hires); ?></h3>
+                        <p>Recent Hires (30 days)</p>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6 mb-4">
+                    <div class="stats-card info">
+                        <div class="icon">
+                            <i class="fas fa-building"></i>
+                        </div>
+                        <h3><?php echo number_format(count($stats['by_department'])); ?></h3>
+                        <p>Departments</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Cards -->
+            <div class="row mb-4">
+                <?php if (hasModulePermission($db, 'employee.employee_form')): ?>
+                <div class="col-lg-3 col-md-6 mb-4">
+                    <a href="employee_form.php" class="text-decoration-none">
+                        <div class="stats-card success action-card">
+                            <div class="notification-bell-module" data-submodule="employee_form">
+                                <i class="fas fa-bell"></i>
+                                <span class="notification-count-module hidden" data-count="0">0</span>
+                            </div>
+                            <div class="icon">
+                                <i class="fas fa-user-plus"></i>
+                            </div>
+                            <h4 class="mb-2">Employee Form</h4>
+                            <p class="mb-0">Add and manage employee data with comprehensive forms</p>
+                        </div>
+                    </a>
+                </div>
+                <?php endif; ?>
+
+                <?php if (hasModulePermission($db, 'employee.employee_list')): ?>
+                <div class="col-lg-3 col-md-6 mb-4">
+                    <a href="employee_list.php" class="text-decoration-none">
+                        <div class="stats-card warning action-card">
+                            <div class="notification-bell-module" data-submodule="employee_list">
+                                <i class="fas fa-bell"></i>
+                                <span class="notification-count-module hidden" data-count="0">0</span>
+                            </div>
+                            <div class="icon">
+                                <i class="fas fa-list"></i>
+                            </div>
+                            <h4 class="mb-2">Employee List</h4>
+                            <p class="mb-0">View and filter employee data with advanced search options</p>
+                        </div>
+                    </a>
+                </div>
+                <?php endif; ?>
+
+                <?php if (hasModulePermission($db, 'employee.data_monitor')): ?>
+                <div class="col-lg-3 col-md-6 mb-4">
+                    <a href="data_monitor.php" class="text-decoration-none">
+                        <div class="stats-card info action-card">
+                            <div class="notification-bell-module" data-submodule="data_monitor">
+                                <i class="fas fa-bell"></i>
+                                <span class="notification-count-module hidden" data-count="0">0</span>
+                            </div>
+                            <div class="icon">
+                                <i class="fas fa-chart-bar"></i>
+                            </div>
+                            <h4 class="mb-2">Data Monitor</h4>
+                            <p class="mb-0">View analytics and comprehensive workforce reports</p>
+                        </div>
+                    </a>
+                </div>
+                <?php endif; ?>
+
+                <?php if (hasModulePermission($db, 'employee.org_chart')): ?>
+                <div class="col-lg-3 col-md-6 mb-4">
+                    <a href="org_chart.php" class="text-decoration-none">
+                        <div class="stats-card purple action-card">
+                            <div class="notification-bell-module" data-submodule="organizational_chart">
+                                <i class="fas fa-bell"></i>
+                                <span class="notification-count-module hidden" data-count="0">0</span>
+                            </div>
+                            <div class="icon">
+                                <i class="fas fa-sitemap"></i>
+                            </div>
+                            <h4 class="mb-2">Organizational Chart</h4>
+                            <p class="mb-0">Visualize organization structure and hierarchy</p>
+                        </div>
+                    </a>
+                </div>
+                <?php endif; ?>
+
+                <?php if (hasModulePermission($db, 'employee.bulk_upload')): ?>
+                <div class="col-lg-3 col-md-6 mb-4">
+                    <a href="bulk_upload.php" class="text-decoration-none">
+                        <div class="stats-card primary action-card">
+                            <div class="notification-bell-module" data-submodule="bulk_upload">
+                                <i class="fas fa-bell"></i>
+                                <span class="notification-count-module hidden" data-count="0">0</span>
+                            </div>
+                            <div class="icon">
+                                <i class="fas fa-upload"></i>
+                            </div>
+                            <h4 class="mb-2">Bulk Upload</h4>
+                            <p class="mb-0">Import multiple employee records from Excel files</p>
+                        </div>
+                    </a>
+                </div>
+                <?php endif; ?>
+
+                <?php if (hasModulePermission($db, 'employee.export_data')): ?>
+                <div class="col-lg-3 col-md-6 mb-4">
+                    <a href="export.php" class="text-decoration-none">
+                        <div class="stats-card danger action-card">
+                            <div class="notification-bell-module" data-submodule="export_data">
+                                <i class="fas fa-bell"></i>
+                                <span class="notification-count-module hidden" data-count="0">0</span>
+                            </div>
+                            <div class="icon">
+                                <i class="fas fa-file-export"></i>
+                            </div>
+                            <h4 class="mb-2">Export Data</h4>
+                            <p class="mb-0">Export employee data to various formats for analysis</p>
+                        </div>
+                    </a>
+                </div>
+                <?php endif; ?>
+            </div>
+
+            <!-- Data Tables Row -->
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <div class="data-table-card">
+                        <div class="table-header">
+                            <h6><i class="fas fa-map-marker-alt me-2"></i>Employees by Location</h6>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Location</th>
+                                        <th class="text-center">Count</th>
+                                        <th class="text-center">Percentage</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php
+                                    $total_employees = $stats['total_employees'];
+                                    foreach($stats['by_location'] as $location_name => $count): ?>
+                                    <tr>
+                                        <td class="fw-medium"><?php echo htmlspecialchars($location_name); ?></td>
+                                        <td class="text-center"><?php echo number_format($count); ?></td>
+                                        <td class="text-center">
+                                            <span class="badge bg-primary"><?php echo $total_employees > 0 ? round(($count / $total_employees) * 100, 1) : 0; ?>%</span>
+                                        </td>
+                                    </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="data-table-card">
+                        <div class="table-header">
+                            <h6><i class="fas fa-building me-2"></i>Employees by Department</h6>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Department</th>
+                                        <th class="text-center">Count</th>
+                                        <th class="text-center">Percentage</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php foreach($stats['by_department'] as $department => $count): ?>
+                                    <tr>
+                                        <td class="fw-medium"><?php echo htmlspecialchars($department); ?></td>
+                                        <td class="text-center"><?php echo number_format($count); ?></td>
+                                        <td class="text-center">
+                                            <span class="badge bg-success"><?php echo $total_employees > 0 ? round(($count / $total_employees) * 100, 1) : 0; ?>%</span>
+                                        </td>
+                                    </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="row">
+                <div class="col-12">
+                    <div class="activity-card">
+                        <h5 class="mb-3"><i class="fas fa-bolt me-2"></i>Quick Actions</h5>
+                        <div class="row g-2">
+                            <?php if (hasModulePermission($db, 'employee.add_employee')): ?>
+                            <div class="col-md-3">
+                                <a href="employee_form.php" class="btn btn-outline-primary btn-sm w-100">
+                                    <i class="fas fa-user-plus me-2"></i>Add New Employee
+                                </a>
+                            </div>
+                            <?php endif; ?>
+                            <?php if (hasModulePermission($db, 'employee.bulk_upload')): ?>
+                            <div class="col-md-3">
+                                <a href="bulk_upload.php" class="btn btn-outline-success btn-sm w-100">
+                                    <i class="fas fa-upload me-2"></i>Bulk Upload
+                                </a>
+                            </div>
+                            <?php endif; ?>
+                            <?php if (hasModulePermission($db, 'employee.export_data')): ?>
+                            <div class="col-md-3">
+                                <a href="template_download.php" class="btn btn-outline-info btn-sm w-100">
+                                    <i class="fas fa-download me-2"></i>Download Template
+                                </a>
+                            </div>
+                            <?php endif; ?>
+                            <?php if (hasModulePermission($db, 'employee.export_data')): ?>
+                            <div class="col-md-3">
+                                <a href="export.php" class="btn btn-outline-warning btn-sm w-100">
+                                    <i class="fas fa-file-export me-2"></i>Export Data
+                                </a>
+                            </div>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Sidebar toggle for mobile
+        document.getElementById('sidebar-toggle')?.addEventListener('click', function() {
+            document.querySelector('.sidebar').classList.toggle('show');
+        });
+    </script>
+
+    <!-- Notification System -->
+    <script src="../../assets/js/notifications.js"></script>
+</body>
+</html>
