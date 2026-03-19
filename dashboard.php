@@ -330,6 +330,23 @@ try {
             box-shadow: 0 8px 20px rgba(0, 123, 255, 0.3);
         }
 
+        /* Top Navbar for Mobile */
+        .top-navbar {
+            background: white;
+            padding: 1rem 1.5rem;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            border-bottom: 1px solid #e9ecef;
+            position: sticky;
+            top: 0;
+            z-index: 1040;
+            display: none;
+        }
+
+        .top-navbar h5 {
+            color: #2c3e50;
+            font-weight: 600;
+        }
+
         @media (max-width: 768px) {
             .main-content {
                 margin-left: 0;
@@ -342,12 +359,51 @@ try {
             .welcome-header h1 {
                 font-size: 1.8rem;
             }
+
+            .top-navbar {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+
+            #sidebar-toggle {
+                color: #007bff;
+                font-size: 1.2rem;
+                padding: 0.5rem;
+                border: none;
+                background: none;
+            }
+
+            #sidebar-toggle:hover {
+                color: #0056b3;
+                background-color: #f8f9fa;
+                border-radius: 0.375rem;
+            }
+
+            #sidebar-toggle.active {
+                color: #0056b3;
+                background-color: #e9ecef;
+                border-radius: 0.375rem;
+            }
         }
     </style>
 </head>
 <body>
     <!-- Sidebar -->
     <?php include 'includes/sidebar.php'; ?>
+
+    <!-- Top Navbar for Mobile -->
+    <div class="top-navbar">
+        <div class="d-flex align-items-center">
+            <button class="btn btn-link d-md-none" id="sidebar-toggle">
+                <i class="fas fa-bars"></i>
+            </button>
+            <h5 class="mb-0 ms-2">Dashboard</h5>
+        </div>
+        <div class="user-info">
+            <span class="text-muted">Welcome, <?php echo htmlspecialchars($user['name']); ?></span>
+        </div>
+    </div>
 
     <!-- Main Content -->
     <div class="main-content">
@@ -608,8 +664,98 @@ try {
 
         // Sidebar toggle for mobile
         document.getElementById('sidebar-toggle')?.addEventListener('click', function() {
-            document.querySelector('.sidebar').classList.toggle('show');
+            const sidebar = document.querySelector('.sidebar');
+            const toggleBtn = document.getElementById('sidebar-toggle');
+
+            sidebar.classList.toggle('show');
+            toggleBtn.classList.toggle('active');
+
+            // Debug logging
+            console.log('Sidebar toggle clicked');
+            console.log('Sidebar element:', sidebar);
+            console.log('Sidebar classes:', sidebar ? sidebar.className : 'not found');
+            console.log('Sidebar show class present:', sidebar ? sidebar.classList.contains('show') : 'N/A');
+
+            if (sidebar) {
+                // Force visible state for debugging
+                if (sidebar.classList.contains('show')) {
+                    sidebar.style.visibility = 'visible';
+                    sidebar.style.opacity = '1';
+                    sidebar.style.transform = 'translateX(0)';
+                    console.log('Sidebar should now be visible');
+                } else {
+                    // Remove forced inline styles when hiding
+                    sidebar.style.visibility = '';
+                    sidebar.style.opacity = '';
+                    sidebar.style.transform = '';
+                    console.log('Sidebar is hidden');
+                }
+            }
         });
+
+        // Close sidebar when clicking outside on mobile - use capture to ensure we get the event
+        document.addEventListener('click', function(event) {
+            console.log('Document click detected:', event.target);
+
+            // Small delay to allow any ongoing class changes to complete
+            setTimeout(function() {
+
+            const sidebar = document.querySelector('.sidebar');
+            const sidebarToggle = document.getElementById('sidebar-toggle');
+
+            // Only proceed if sidebar is open
+            if (!sidebar) {
+                console.log('No sidebar found, ignoring click');
+                return;
+            }
+
+            const hasShowClass = sidebar.classList.contains('show');
+            const hasInlineStyles = sidebar.style.visibility === 'visible';
+            const isVisible = hasShowClass || hasInlineStyles;
+
+            console.log('Sidebar state check:', {
+                hasShowClass,
+                hasInlineStyles,
+                isVisible,
+                classList: sidebar.className,
+                visibility: sidebar.style.visibility
+            });
+
+            if (!isVisible) {
+                console.log('Sidebar not open, ignoring click');
+                return;
+            }
+
+            console.log('Sidebar is open, checking click location');
+
+            // Check if clicked on toggle button - if so, let toggle handler deal with it
+            if (sidebarToggle && sidebarToggle.contains(event.target)) {
+                console.log('Clicked toggle button - letting toggle handler deal with it');
+                return;
+            }
+
+            // Check if clicked inside sidebar
+            if (sidebar.contains(event.target)) {
+                console.log('Clicked inside sidebar - staying open');
+                return;
+            }
+
+            // If we get here, clicked outside - close sidebar
+            console.log('Clicked outside sidebar - closing');
+            sidebar.classList.remove('show');
+
+            // Remove forced inline styles
+            sidebar.style.visibility = '';
+            sidebar.style.opacity = '';
+            sidebar.style.transform = '';
+
+            // Remove active state from toggle button
+            if (sidebarToggle) {
+                sidebarToggle.classList.remove('active');
+            }
+
+            }, 50); // Small delay to allow class changes
+        }, true); // Use capture phase to ensure we get the event first
     </script>
 
     <!-- Notification System -->
