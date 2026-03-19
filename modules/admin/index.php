@@ -219,7 +219,50 @@ $total_settings = $db->fetch("SELECT COUNT(*) as count FROM system_settings")['c
             border: none;
         }
 
+        /* Top Navbar for Mobile */
+        .top-navbar {
+            background: white;
+            padding: 1rem 1.5rem;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            border-bottom: 1px solid #e9ecef;
+            position: sticky;
+            top: 0;
+            z-index: 1040;
+            display: none;
+        }
+
+        .top-navbar h5 {
+            color: #2c3e50;
+            font-weight: 600;
+        }
+
         @media (max-width: 768px) {
+            .top-navbar {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+
+            #sidebar-toggle {
+                color: #007bff;
+                font-size: 1.2rem;
+                padding: 0.5rem;
+                border: none;
+                background: none;
+            }
+
+            #sidebar-toggle:hover {
+                color: #0056b3;
+                background-color: #f8f9fa;
+                border-radius: 0.375rem;
+            }
+
+            #sidebar-toggle.active {
+                color: #0056b3;
+                background-color: #e9ecef;
+                border-radius: 0.375rem;
+            }
+
             .main-content {
                 margin-left: 0;
             }
@@ -231,12 +274,87 @@ $total_settings = $db->fetch("SELECT COUNT(*) as count FROM system_settings")['c
             .page-header h1 {
                 font-size: 2rem;
             }
+
+            /* Mobile Sidebar CSS Rules - Force initial hidden state */
+            .sidebar {
+                transform: translateX(-100%) !important;
+                transition: transform 0.3s ease !important;
+                z-index: 1050 !important;
+                box-shadow: none !important;
+                position: fixed !important;
+                top: 0 !important;
+                left: 0 !important;
+                height: 100vh !important;
+                width: 280px !important;
+                overflow-y: auto !important;
+                background: linear-gradient(180deg, #007bff 0%, #0056b3 100%) !important;
+                color: white !important;
+                visibility: hidden !important;
+                opacity: 0 !important;
+            }
+
+            /* Only show sidebar when it has the 'show' class */
+            .sidebar.show {
+                transform: translateX(0) !important;
+                z-index: 1050 !important;
+                visibility: visible !important;
+                opacity: 1 !important;
+                display: block !important;
+                box-shadow: 4px 0 20px rgba(0, 0, 0, 0.25) !important;
+            }
+
+            /* Ensure sidebar content is visible */
+            .sidebar.show .sidebar-header,
+            .sidebar.show .sidebar-menu,
+            .sidebar.show .sidebar-footer,
+            .sidebar.show .sidebar-link,
+            .sidebar.show .scroll-container,
+            .sidebar.show .sidebar-item {
+                visibility: visible !important;
+                opacity: 1 !important;
+                display: block !important;
+            }
+
+            /* Force sidebar text to be visible */
+            .sidebar-link {
+                color: rgba(255, 255, 255, 0.9) !important;
+                display: flex !important;
+                align-items: center !important;
+            }
+
+            .sidebar-header h4 {
+                color: white !important;
+            }
+
+            .sidebar-header small {
+                color: rgba(255, 255, 255, 0.85) !important;
+            }
+
+            .sidebar.show .sidebar-link i {
+                width: 20px !important;
+                margin-right: 0.75rem !important;
+                font-size: 1rem !important;
+                color: inherit !important;
+            }
         }
     </style>
 </head>
 <body>
     <!-- Sidebar -->
     <?php include '../../includes/sidebar.php'; ?>
+
+    <!-- Top Navbar for Mobile -->
+    <div class="top-navbar">
+        <div class="d-flex align-items-center">
+            <button class="btn btn-link d-md-none" id="sidebar-toggle">
+                <i class="fas fa-bars"></i>
+            </button>
+            <h5 class="mb-0 ms-2">Admin Panel</h5>
+        </div>
+        <div class="user-info">
+            <span class="text-muted">Welcome, <?php echo htmlspecialchars($user['name']); ?></span>
+        </div>
+    </div>
 
     <!-- Main Content -->
     <div class="main-content">
@@ -444,10 +562,138 @@ $total_settings = $db->fetch("SELECT COUNT(*) as count FROM system_settings")['c
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Sidebar toggle for mobile
-        document.getElementById('sidebar-toggle')?.addEventListener('click', function() {
-            document.querySelector('.sidebar').classList.toggle('show');
+// Enhanced Sidebar toggle for mobile with click-outside functionality
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Mobile navigation script loaded for module');
+
+    // Reset sidebar to initial state (multiple times to ensure it sticks)
+    function resetSidebar() {
+        const sidebar = document.querySelector('.sidebar');
+        if (sidebar) {
+            sidebar.classList.remove('show');
+            sidebar.style.cssText = '';
+            console.log('Sidebar reset to:', sidebar.className);
+        }
+    }
+
+    // Reset immediately
+    resetSidebar();
+
+    // Reset again after a small delay to override any other scripts
+    setTimeout(resetSidebar, 100);
+    setTimeout(resetSidebar, 500);
+
+    // Monitor sidebar class changes
+    const sidebar = document.querySelector('.sidebar');
+    if (sidebar) {
+        const observer = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+                if (mutation.attributeName === 'class') {
+                    console.log('Sidebar class changed to:', sidebar.className);
+                }
+            });
         });
-    </script>
+        observer.observe(sidebar, { attributes: true, attributeFilter: ['class'] });
+    }
+
+    // Sidebar toggle for mobile
+    const sidebarToggle = document.getElementById('sidebar-toggle');
+    if (sidebarToggle) {
+        console.log('Sidebar toggle button found');
+        sidebarToggle.addEventListener('click', function(event) {
+            console.log('Sidebar toggle clicked in module - CAPTURING');
+
+            // Stop all other event handlers from running
+            event.stopPropagation();
+            event.stopImmediatePropagation();
+            event.preventDefault();
+
+            const sidebar = document.querySelector('.sidebar');
+            const toggleBtn = document.getElementById('sidebar-toggle');
+
+            console.log('Before toggle - Sidebar classes:', sidebar.className);
+            console.log('Before toggle - Sidebar style:', sidebar.style.cssText);
+
+            // Force toggle the show class
+            if (sidebar.classList.contains('show')) {
+                sidebar.classList.remove('show');
+                toggleBtn.classList.remove('active');
+                console.log('Removing show class');
+            } else {
+                sidebar.classList.add('show');
+                toggleBtn.classList.add('active');
+                console.log('Adding show class');
+            }
+
+            console.log('After toggle - Sidebar element:', sidebar);
+            console.log('After toggle - Sidebar classes:', sidebar ? sidebar.className : 'not found');
+            console.log('After toggle - Sidebar style:', sidebar.style.cssText);
+
+            if (sidebar) {
+                if (sidebar.classList.contains('show')) {
+                    sidebar.style.visibility = 'visible';
+                    sidebar.style.opacity = '1';
+                    sidebar.style.transform = 'translateX(0)';
+                    console.log('Sidebar should now be visible');
+                } else {
+                    sidebar.style.visibility = '';
+                    sidebar.style.opacity = '';
+                    sidebar.style.transform = '';
+                    console.log('Sidebar is hidden');
+                }
+            }
+        }, true); // Use capture phase to ensure we run first
+    } else {
+        console.log('ERROR: Sidebar toggle button not found!');
+    }
+
+    // Close sidebar when clicking outside on mobile
+    document.addEventListener('click', function(event) {
+        console.log('Document click detected:', event.target);
+
+        setTimeout(function() {
+            const sidebar = document.querySelector('.sidebar');
+            const sidebarToggle = document.getElementById('sidebar-toggle');
+
+            if (!sidebar) {
+                console.log('No sidebar found, ignoring click');
+                return;
+            }
+
+            const hasShowClass = sidebar.classList.contains('show');
+            const hasInlineStyles = sidebar.style.visibility === 'visible';
+            const isVisible = hasShowClass || hasInlineStyles;
+
+            if (!isVisible) {
+                console.log('Sidebar not open, ignoring click');
+                return;
+            }
+
+            console.log('Sidebar is open, checking click location');
+
+            if (sidebarToggle && sidebarToggle.contains(event.target)) {
+                console.log('Clicked toggle button - letting toggle handler deal with it');
+                return;
+            }
+
+            if (sidebar.contains(event.target)) {
+                console.log('Clicked inside sidebar - staying open');
+                return;
+            }
+
+            console.log('Clicked outside sidebar - closing');
+            sidebar.classList.remove('show');
+
+            sidebar.style.visibility = '';
+            sidebar.style.opacity = '';
+            sidebar.style.transform = '';
+
+            if (sidebarToggle) {
+                sidebarToggle.classList.remove('active');
+            }
+        }, 50);
+    }, true);
+});
+</script>
 </body>
 </html>
