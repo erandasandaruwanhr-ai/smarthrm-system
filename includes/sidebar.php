@@ -535,14 +535,89 @@ if (!function_exists('hasAdminAccess')) {
 @media (max-width: 768px) {
     .sidebar {
         transform: translateX(-100%);
+        z-index: 1050 !important;
+        box-shadow: 4px 0 20px rgba(0, 0, 0, 0.25) !important;
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        height: 100vh !important;
+        width: var(--sidebar-width) !important;
+        overflow-y: auto !important;
     }
 
     .sidebar.show {
-        transform: translateX(0);
+        transform: translateX(0) !important;
+        z-index: 1050 !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+    }
+
+    /* Ensure sidebar content is visible */
+    .sidebar.show .sidebar-header,
+    .sidebar.show .sidebar-menu,
+    .sidebar.show .sidebar-footer,
+    .sidebar.show .sidebar-link,
+    .sidebar.show .scroll-container {
+        visibility: visible !important;
+        opacity: 1 !important;
+        display: block !important;
+    }
+
+    .sidebar.show .sidebar-item {
+        visibility: visible !important;
+        opacity: 1 !important;
+        display: block !important;
     }
 
     .main-content {
         margin-left: 0;
+    }
+
+    /* Add overlay when sidebar is open */
+    .sidebar.show::after {
+        content: '';
+        position: fixed;
+        top: 0;
+        left: var(--sidebar-width);
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: -1;
+    }
+
+    /* Force sidebar background and styling to be visible */
+    .sidebar.show {
+        background: linear-gradient(180deg, #007bff 0%, #0056b3 100%) !important;
+    }
+
+    /* Force sidebar text to be visible */
+    .sidebar * {
+        color: inherit !important;
+    }
+
+    .sidebar-link {
+        color: rgba(255, 255, 255, 0.9) !important;
+    }
+
+    .sidebar-header h4 {
+        color: white !important;
+    }
+
+    .sidebar-header small {
+        color: rgba(255, 255, 255, 0.85) !important;
+    }
+
+    /* Ensure flex layouts work properly on mobile */
+    .sidebar.show .sidebar-link {
+        display: flex !important;
+        align-items: center !important;
+    }
+
+    .sidebar.show .sidebar-link i {
+        width: 20px !important;
+        margin-right: 0.75rem !important;
+        font-size: 1rem !important;
+        color: inherit !important;
     }
 }
 </style>
