@@ -258,9 +258,44 @@ try {
     $error = "Could not load account types: " . $e->getMessage();
 }
 
+// Handle sorting and filtering
+$sort_by = $_GET['sort'] ?? 'name';
+$sort_order = $_GET['order'] ?? 'asc';
+$epf_filter = $_GET['epf_filter'] ?? '';
+$valid_sorts = ['name', 'epf_number', 'location_name', 'account_type_name', 'password_reset_at'];
+$sort_by = in_array($sort_by, $valid_sorts) ? $sort_by : 'name';
+$sort_order = in_array($sort_order, ['asc', 'desc']) ? $sort_order : 'asc';
+
+// Build ORDER BY clause
+switch($sort_by) {
+    case 'epf_number':
+        // Cast EPF number to integer for proper numeric sorting
+        $order_clause = "CAST(e.epf_number AS UNSIGNED) {$sort_order}";
+        break;
+    case 'location_name':
+        $order_clause = "l.location_name {$sort_order}";
+        break;
+    case 'account_type_name':
+        $order_clause = "at.type_name {$sort_order}";
+        break;
+    case 'password_reset_at':
+        $order_clause = "e.password_reset_at IS NULL, e.password_reset_at {$sort_order}";
+        break;
+    default:
+        $order_clause = "e.name {$sort_order}";
+}
+
+// Build WHERE clause for filtering
+$where_clause = "";
+$params = [];
+if (!empty($epf_filter)) {
+    $where_clause = "WHERE e.epf_number LIKE ?";
+    $params[] = "%{$epf_filter}%";
+}
+
 // Get all employees with their account status
 try {
-    $employees = $db->fetchAll("
+    $sql = "
         SELECT
             e.id,
             e.name,
@@ -279,8 +314,11 @@ try {
         FROM employees e
         LEFT JOIN account_types at ON e.account_type_id = at.id
         LEFT JOIN locations l ON e.location_id = l.id
-        ORDER BY e.name ASC
-    ");
+        {$where_clause}
+        ORDER BY {$order_clause}
+    ";
+
+    $employees = $db->fetchAll($sql, $params);
 } catch (Exception $e) {
     $employees = [];
     $error = "Could not load employees: " . $e->getMessage();
@@ -336,6 +374,54 @@ try {
         .strength-fair { background: #ffc107; width: 50%; }
         .strength-good { background: #fd7e14; width: 75%; }
         .strength-strong { background: #28a745; width: 100%; }
+
+        /* Table header sorting styles */
+        .table-dark th {
+            background-color: #212529 !important;
+            border-color: #32383e !important;
+            color: #ffffff !important;
+            position: relative;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .table-dark th a {
+            color: #ffffff !important;
+            text-decoration: none !important;
+            display: block !important;
+            width: 100% !important;
+            padding: 8px !important;
+            font-weight: bold !important;
+        }
+
+        .table-dark th a:hover {
+            color: #f8f9fa !important;
+            text-decoration: none !important;
+            background-color: rgba(255,255,255,0.1) !important;
+        }
+
+        .table-dark th a:visited {
+            color: #ffffff !important;
+        }
+
+        .sort-icon {
+            opacity: 0.6;
+            margin-left: 8px;
+            font-size: 0.9em;
+            color: #ffffff !important;
+        }
+
+        .sort-icon.active {
+            opacity: 1 !important;
+            color: #ffc107 !important;
+        }
+
+        /* Non-sortable headers */
+        .table-dark th.no-sort {
+            color: #ffffff !important;
+            font-weight: bold !important;
+            padding: 8px !important;
+        }
     </style>
 </head>
 <body>
@@ -376,13 +462,12 @@ try {
 
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h1 class="h2"><i class="fas fa-key me-2"></i>Enhanced Password Management</h1>
-                <div>
-                    <a href="update_password_management.php" class="btn btn-outline-info me-2" target="_blank">
-                        <i class="fas fa-database me-2"></i>Update DB
-                    </a>
-                    <a href="password_management.php" class="btn btn-outline-secondary me-2">
-                        <i class="fas fa-arrow-left me-2"></i>Original
-                    </a>
+                <div class="d-flex align-items-center">
+                    <?php if (isset($_GET['sort'])): ?>
+                        <small class="text-muted me-3">
+                            Sorted by: <?php echo ucfirst(str_replace('_', ' ', $sort_by)); ?> (<?php echo strtoupper($sort_order); ?>)
+                        </small>
+                    <?php endif; ?>
                     <a href="index.php" class="btn btn-secondary">
                         <i class="fas fa-arrow-left me-2"></i>Back
                     </a>
@@ -493,20 +578,72 @@ try {
             <!-- Employee Accounts List -->
             <div class="card shadow-sm">
                 <div class="card-header bg-primary text-white">
-                    <h5 class="mb-0"><i class="fas fa-users-cog me-2"></i>Employee Account Management</h5>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="fas fa-users-cog me-2"></i>Employee Account Management</h5>
+                        <div class="d-flex align-items-center">
+                            <form method="GET" class="d-flex align-items-center">
+                                <!-- Preserve sort parameters -->
+                                <?php if (isset($_GET['sort'])): ?>
+                                    <input type="hidden" name="sort" value="<?php echo htmlspecialchars($_GET['sort']); ?>">
+                                <?php endif; ?>
+                                <?php if (isset($_GET['order'])): ?>
+                                    <input type="hidden" name="order" value="<?php echo htmlspecialchars($_GET['order']); ?>">
+                                <?php endif; ?>
+
+                                <label class="form-label text-white me-2 mb-0" style="white-space: nowrap;">Filter EPF:</label>
+                                <input type="text" name="epf_filter" class="form-control form-control-sm me-2"
+                                       placeholder="Enter EPF number..."
+                                       value="<?php echo htmlspecialchars($epf_filter); ?>"
+                                       style="width: 150px;">
+                                <button type="submit" class="btn btn-light btn-sm me-1">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                                <?php if (!empty($epf_filter)): ?>
+                                    <a href="?" class="btn btn-outline-light btn-sm">
+                                        <i class="fas fa-times"></i>
+                                    </a>
+                                <?php endif; ?>
+                            </form>
+                        </div>
+                    </div>
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
                         <table class="table table-hover">
                             <thead class="table-dark">
                                 <tr>
-                                    <th>Employee</th>
-                                    <th>EPF</th>
-                                    <th>Location</th>
-                                    <th>Account Status</th>
-                                    <th>Account Type</th>
-                                    <th>Last Reset</th>
-                                    <th>Actions</th>
+                                    <th style="padding: 0;">
+                                        <a href="?sort=name&order=<?php echo ($sort_by == 'name' && $sort_order == 'asc') ? 'desc' : 'asc'; ?><?php echo !empty($epf_filter) ? '&epf_filter=' . urlencode($epf_filter) : ''; ?>">
+                                            Employee
+                                            <i class="fas fa-sort<?php echo ($sort_by == 'name') ? '-' . ($sort_order == 'asc' ? 'up' : 'down') : ''; ?> sort-icon<?php echo ($sort_by == 'name') ? ' active' : ''; ?>"></i>
+                                        </a>
+                                    </th>
+                                    <th style="padding: 0;">
+                                        <a href="?sort=epf_number&order=<?php echo ($sort_by == 'epf_number' && $sort_order == 'asc') ? 'desc' : 'asc'; ?><?php echo !empty($epf_filter) ? '&epf_filter=' . urlencode($epf_filter) : ''; ?>">
+                                            EPF
+                                            <i class="fas fa-sort<?php echo ($sort_by == 'epf_number') ? '-' . ($sort_order == 'asc' ? 'up' : 'down') : ''; ?> sort-icon<?php echo ($sort_by == 'epf_number') ? ' active' : ''; ?>"></i>
+                                        </a>
+                                    </th>
+                                    <th style="padding: 0;">
+                                        <a href="?sort=location_name&order=<?php echo ($sort_by == 'location_name' && $sort_order == 'asc') ? 'desc' : 'asc'; ?><?php echo !empty($epf_filter) ? '&epf_filter=' . urlencode($epf_filter) : ''; ?>">
+                                            Location
+                                            <i class="fas fa-sort<?php echo ($sort_by == 'location_name') ? '-' . ($sort_order == 'asc' ? 'up' : 'down') : ''; ?> sort-icon<?php echo ($sort_by == 'location_name') ? ' active' : ''; ?>"></i>
+                                        </a>
+                                    </th>
+                                    <th class="no-sort">Account Status</th>
+                                    <th style="padding: 0;">
+                                        <a href="?sort=account_type_name&order=<?php echo ($sort_by == 'account_type_name' && $sort_order == 'asc') ? 'desc' : 'asc'; ?><?php echo !empty($epf_filter) ? '&epf_filter=' . urlencode($epf_filter) : ''; ?>">
+                                            Account Type
+                                            <i class="fas fa-sort<?php echo ($sort_by == 'account_type_name') ? '-' . ($sort_order == 'asc' ? 'up' : 'down') : ''; ?> sort-icon<?php echo ($sort_by == 'account_type_name') ? ' active' : ''; ?>"></i>
+                                        </a>
+                                    </th>
+                                    <th style="padding: 0;">
+                                        <a href="?sort=password_reset_at&order=<?php echo ($sort_by == 'password_reset_at' && $sort_order == 'asc') ? 'desc' : 'asc'; ?><?php echo !empty($epf_filter) ? '&epf_filter=' . urlencode($epf_filter) : ''; ?>">
+                                            Last Reset
+                                            <i class="fas fa-sort<?php echo ($sort_by == 'password_reset_at') ? '-' . ($sort_order == 'asc' ? 'up' : 'down') : ''; ?> sort-icon<?php echo ($sort_by == 'password_reset_at') ? ' active' : ''; ?>"></i>
+                                        </a>
+                                    </th>
+                                    <th class="no-sort">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
