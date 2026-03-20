@@ -33,6 +33,21 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === 'employee_details' && isset($_GET[
 
     $epf_number = $_GET['epf'];
 
+    // Role-based access control: restrict supervisors to their own direct reports only
+    if (!hasModulePermission($db, 'performance.view_all_staff') && !empty($user['epf_number'])) {
+        $access_check = $db->fetch("
+            SELECT epf_number FROM employees
+            WHERE CAST(epf_number AS CHAR) COLLATE utf8mb4_unicode_ci = CAST(? AS CHAR) COLLATE utf8mb4_unicode_ci
+            AND CAST(reports_to AS CHAR) COLLATE utf8mb4_unicode_ci = CAST(? AS CHAR) COLLATE utf8mb4_unicode_ci
+            AND is_active = 1
+        ", [$epf_number, $user['epf_number']]);
+
+        if (!$access_check) {
+            echo json_encode(['success' => false, 'message' => 'Access denied: This employee is not in your reporting line.']);
+            exit;
+        }
+    }
+
     // Debug: Let's first try a simple response
     if (isset($_GET['debug'])) {
         echo json_encode([
@@ -225,6 +240,15 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === 'employee_details' && isset($_GET[
     }
 }
 
+// Role-based access: admins/managers see all staff; supervisors see only their direct reports
+$is_admin_access = hasModulePermission($db, 'performance.view_all_staff');
+$supervisor_filter_sql = '';
+$supervisor_filter_params = [];
+if (!$is_admin_access && !empty($user['epf_number'])) {
+    $supervisor_filter_sql = "AND CAST(e.reports_to AS CHAR) COLLATE utf8mb4_unicode_ci = CAST(? AS CHAR) COLLATE utf8mb4_unicode_ci";
+    $supervisor_filter_params[] = $user['epf_number'];
+}
+
 // Get staff members eligible for appraisal (employment levels 8 and 9)
 $staff_members = $db->fetchAll("
     SELECT
@@ -249,8 +273,9 @@ $staff_members = $db->fetchAll("
     LEFT JOIN employees supervisor ON CAST(e.reports_to AS CHAR) COLLATE utf8mb4_unicode_ci = CAST(supervisor.epf_number AS CHAR) COLLATE utf8mb4_unicode_ci
     LEFT JOIN employment_levels el ON e.employment_level_id = el.id
     WHERE e.is_active = 1 AND e.employment_level_id IN (8, 9)
+    $supervisor_filter_sql
     ORDER BY e.epf_number
-");
+", $supervisor_filter_params);
 ?>
 <!DOCTYPE html>
 <html lang="en">
