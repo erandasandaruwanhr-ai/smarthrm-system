@@ -601,37 +601,6 @@ $has_data = ($stats['requirements'] > 0 || $stats['budgeted'] > 0);
                 <?php endif; ?>
 
             </div>
-
-            <!-- Quick Actions -->
-            <div class="row">
-                <div class="col-12">
-                    <div class="activity-card">
-                        <h5 class="mb-3"><i class="fas fa-bolt me-2"></i>Quick Actions</h5>
-                        <div class="row g-2">
-                            <div class="col-md-3">
-                                <a href="requirements.php" class="btn btn-outline-primary btn-sm w-100">
-                                    <i class="fas fa-plus me-2"></i>New Requirement
-                                </a>
-                            </div>
-                            <div class="col-md-3">
-                                <a href="budget.php" class="btn btn-outline-success btn-sm w-100">
-                                    <i class="fas fa-money-check-alt me-2"></i>Manage Budget
-                                </a>
-                            </div>
-                            <div class="col-md-3">
-                                <a href="plans.php" class="btn btn-outline-warning btn-sm w-100">
-                                    <i class="fas fa-calendar-plus me-2"></i>Schedule Training
-                                </a>
-                            </div>
-                            <div class="col-md-3">
-                                <a href="tracker.php" class="btn btn-outline-info btn-sm w-100">
-                                    <i class="fas fa-chart-line me-2"></i>View Progress
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
         </div>
     </div>
 
