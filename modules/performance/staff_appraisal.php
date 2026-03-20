@@ -1088,9 +1088,7 @@ try {
                         <button type="submit" name="action" value="submit" class="btn btn-primary">
                             <i class="fas fa-paper-plane me-2"></i>Submit Appraisal
                         </button>
-                        <a href="staff_list.php" class="btn btn-outline-secondary">
-                            <i class="fas fa-times me-2"></i>Cancel
-                        </a>
+                        
                     </div>
                 </div>
             </form>
